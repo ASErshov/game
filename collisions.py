@@ -4,10 +4,10 @@ import consts
 def check_collisions(user, barriers):
     collision = False
     for barrier in barriers:
-        if barrier.type == consts.landscape:
+        if barrier.type == consts.landscape or barrier.type == consts.asteroid:
             check_landscape_collision(user, barrier)
         else:
-            collision = check_let_collision(user, barrier)
+            collision = collision or check_let_collision(user, barrier)
 
     return collision
 
@@ -23,8 +23,9 @@ def check_landscape_collision(user, barrier):
             if user.y <= barrier.y + barrier.height and user.y >= barrier.y + barrier.height - consts.delta:
                 user.set_jump(user.start_jump_y - barrier.y - barrier.height )
                 barrier.set_collision(True)
-            if user.y + user.height >= barrier.y and user.y + user.height <= barrier.y + consts.delta:
-                if user.x >= barrier.x + barrier.width * count - consts.delta and user.x <= barrier.x + barrier.width * count + user.width:
+            if user.y + user.height >= barrier.y and user.y + user.height <= barrier.y + consts.delta + 5:
+                if user.x >= barrier.x + barrier.width * count - consts.delta and user.x <= barrier.x + barrier.width * count + user.width\
+                        or user.x <= barrier.x - user.width + consts.delta and user.x >= barrier.x - user.width:
                     user.set_fall(consts.display_height - consts.ground_height - user.height - user.y)
                     barrier.set_collision(True)
                 else:
@@ -33,12 +34,12 @@ def check_landscape_collision(user, barrier):
                     user.stop_fall()
         if user.y <= barrier.y + barrier.height - consts.delta  and user.y >= barrier.y \
                 or user.y + user.height <= barrier.y + barrier.height and user.y + user.height >= barrier.y + consts.delta \
-                or user.y >= barrier.y and user.y + user.height <= barrier.y + barrier.height:
+                or user.y <= barrier.y and user.y + user.height >= barrier.y + barrier.height:
             user.ram(barrier.speed)
             barrier.set_collision(True)
         if user.start_jump_y == user.y and not user.make_fall:
             barrier.set_collision(False)
-        if user.x >= barrier.x and user.x + user.width < barrier.x + barrier.width + user.width:
+        if user.x >= barrier.x - user.width + consts.delta  and user.x + user.width < barrier.x + barrier.width + user.width:
             if user.y + user.height >= barrier.y and user.y + user.height <= barrier.y + consts.delta:
                 barrier.set_collision(False)
     else:
@@ -49,8 +50,15 @@ def check_landscape_collision(user, barrier):
 
 
 def check_let_collision(user, barrier):
-    if user.x > barrier.x - user.width and user.x + user.width < barrier.x + barrier.width * barrier.count + user.width:
+    count = 1
+    try:
+        count = barrier.count
+    except:
+        count = 1
+    if user.x > barrier.x - user.width and user.x + user.width < barrier.x + barrier.width * count + user.width:
         if user.y >= barrier.y and user.y <= barrier.y + barrier.height \
-                or user.y + user.height >= barrier.y and user.y + user.height <= barrier.y + barrier.height:
+                or user.y + user.height >= barrier.y and user.y + user.height <= barrier.y + barrier.height\
+                or user.y + user.height >= barrier.y + barrier.height and user.y <= barrier.y :
             return True
     return False
+

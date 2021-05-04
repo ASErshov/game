@@ -5,3 +5,5 @@ delta = 10
 
 triangle = 'triangle'
 landscape = 'landscape'
+asteroid = 'asteroid'
+laser = 'laser'

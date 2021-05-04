@@ -1,4 +1,4 @@
-from consts import ground_height
+from consts import ground_height, display_height
 
 
 class User:
@@ -36,6 +36,8 @@ class User:
             self.jump_counter = 25
             self.max_jump = 25
             self.make_jump = False
+            self.fall_counter = self.jump_counter
+            self.set_fall(display_height - ground_height - self.height - self.y)
 
     def ram(self, speed):
         self.x -= speed
@@ -45,20 +47,15 @@ class User:
         self.y = y
 
     def fall(self):
-        if self.fall_sum <= self.fall_height:
-            self.y += self.fall_counter / 2.5
-            self.fall_counter += 1
-            self.fall_sum += self.fall_counter / 2.5
-        else:
-            self.y += self.fall_counter / 2.5
-            self.make_fall = False
-            self.fall_height = 0
-            self.fall_counter = 0
-            self.fall_sum = 0
+        self.y += self.fall_counter / 2.5
+        self.fall_counter += 1
 
     def set_fall(self, height):
-        self.fall_height = height
-        self.make_fall = True
+        if height > 0:
+            self.fall_height = height
+            self.make_fall = True
+        else:
+            self.fall_counter = 0
 
     def stop_fall(self):
         if self.make_fall:

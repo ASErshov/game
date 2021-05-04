@@ -8,7 +8,4 @@ class Movement:
         self.speed = direction * speed
 
     def move(self):
-        if self.x >= -self.width:
-            self.x -= self.speed
-        else:
-            self.x = self.start_x
+        self.x -= self.speed
