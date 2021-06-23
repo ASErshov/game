@@ -9,32 +9,34 @@ from maps import all_maps
 
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 pygame.init()
-round = 0
 
 
-def start_game():
-    display_width = consts.display_width
-    display_height = consts.display_height
+class Game:
+    def __init__(self):
+        self.round = 0
+        self.display_width = consts.display_width
+        self.display_height = consts.display_height
 
-    display = pygame.display.set_mode((display_width, display_height))
-    pygame.display.set_caption('Some platformer')
+        self.display = pygame.display.set_mode((self.display_width, self.display_height))
 
-    pygame.mixer.music.load(r'assets/background.mp3')
-    pygame.mixer.music.set_volume(0.3)
+        self.icon = pygame.image.load(r'assets/icon.png')
+        self.background = pygame.image.load(r'assets/background.jpg')
 
-    icon = pygame.image.load(r'assets/icon.png')
-    background = pygame.image.load(r'assets/background.jpg')
+        self.clock = pygame.time.Clock()
 
-    pygame.display.set_icon(icon)
+    def start_game(self):
+        pygame.display.set_caption('Some platformer')
 
-    clock = pygame.time.Clock()
+        pygame.mixer.music.load(r'assets/background.mp3')
+        pygame.mixer.music.set_volume(0.3)
 
+        pygame.display.set_icon(self.icon)
 
+        self.show_menu()
 
-    def run_game():
-        global round
+    def run_game(self):
         user_image = pygame.image.load(r'assets/user.png')
-        usr = user.User(display_width, display_height)
+        usr = user.User(self.display_width, self.display_height)
         user_image = pygame.transform.scale(user_image, (usr.width, usr.height))
         run = True
         first_tick = True
@@ -42,21 +44,21 @@ def start_game():
         pygame.mixer.music.play(-1)
         while run:
             if first_tick:
-                if len(all_maps) > round:
-                    (barriers, win_line) = all_maps[round]()
+                if len(all_maps) > self.round:
+                    (barriers, win_line) = all_maps[self.round]()
                 else:
                     end = True
             first_tick = False
 
             if end:
                 pygame.mixer.music.stop()
-                pygame.draw.rect(display, (0, 0, 0), (0, 0, display_width, display_height))
-                pause(display, 'It was last lvl you are passed the game', clock)
-                round = 0
-                start_game()
+                pygame.draw.rect(self.display, (0, 0, 0), (0, 0, self.display_width, self.display_height))
+                self.pause('It was last lvl you are passed the game')
+                self.round = 0
+                self.start_game()
                 first_tick = True
 
-            fail = collisions.check_collisions(usr, barriers) or usr.x <= 0 or usr.y > consts.display_height
+            fail = collisions.check_collisions(usr, barriers) or usr.x <= 0 or usr.y > self.display_height
             win = win_line() <= -100
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -67,22 +69,22 @@ def start_game():
             if keys[pygame.K_SPACE] and not usr.make_fall:
                 usr.set_make_jump()
             if keys[pygame.K_ESCAPE]:
-                pause(display, 'Paused, press enter to continue', clock)
+                self.pause('Paused, press enter to continue')
             if keys[pygame.K_r]:
                 pygame.mixer.music.stop()
-                run_game()
+                self.run_game()
                 first_tick = True
 
             if fail:
                 pygame.mixer.music.stop()
-                pause(display, 'You are lose, press enter to restart', clock)
-                run_game()
+                self.pause('You are lose, press enter to restart')
+                self.run_game()
                 first_tick = True
 
             if win:
                 pygame.mixer.music.stop()
-                pause(display, 'You are win, press enter to restart, or n to next lvl', clock, 450, True)
-                run_game()
+                self.pause('You are win, press enter to restart, or n to next lvl', 450, True)
+                self.run_game()
                 first_tick = True
 
             if usr.make_jump:
@@ -90,96 +92,88 @@ def start_game():
             if usr.make_fall:
                 usr.fall()
 
-            display.blit(background, (0, 0))
+            self.display.blit(self.background, (0, 0))
 
-            display.blit(user_image, (usr.x, usr.y))
+            self.display.blit(user_image, (usr.x, usr.y))
 
             for let in barriers:
                 try:
-                    draw_let(display, let.type, let.color, let.x, let.y, let.width,
+                    self.draw_let(let.type, let.color, let.x, let.y, let.width,
                              let.height, let.count)
 
                 except:
-                    draw_let(display, let.type, let.color, let.x, let.y, let.width,
+                    self.draw_let(let.type, let.color, let.x, let.y, let.width,
                              let.height)
                 let.move()
 
             pygame.display.update()
-            clock.tick(100)
+            self.clock.tick(100)
 
-    show_menu(display, clock, run_game)
+    def draw_let(self, type, color, x, y, width, height, count=1):
+        if type == consts.triangle:
+            for i in range(count):
+                tmp_x = x + width * i
+                pygame.draw.polygon(self.display, color,
+                                    [(tmp_x, y + height), (tmp_x + width // 2, y), (tmp_x + width, y + height)])
+        if type == consts.landscape:
+            pygame.draw.rect(self.display, color, (x, y, width, height))
+        if type == consts.asteroid:
+            pygame.draw.circle(self.display, color, (x + width // 2, y + width // 2), width // 2)
+        if type == consts.laser:
+            pygame.draw.circle(self.display, color, (x + width // 2, y + width // 2), width // 2)
 
+    def print_text(self, message, x, y, font_color=(227, 169, 220), font_type=r'fonts/FreckleFace.ttf', font_size=50):
+        font = pygame.font.Font(font_type, font_size)
+        text = font.render(message, True, font_color)
+        self.display.blit(text, (x, y))
 
-def draw_let(display, type, color, x, y, width, height, count=1):
-    if type == consts.triangle:
-        for i in range(count):
-            tmp_x = x + width * i
-            pygame.draw.polygon(display, color, [(tmp_x, y + height), (tmp_x + width // 2, y), (tmp_x + width, y + height)])
-    if type == consts.landscape:
-        pygame.draw.rect(display, color, (x, y, width, height))
-    if type == consts.asteroid:
-        pygame.draw.circle(display, color, (x+width//2, y+width//2), width//2)
-    if type == consts.laser:
-        pygame.draw.circle(display, color, (x+width//2, y+width//2), width//2)
+    def pause(self, message, line_length=300, win=False):
+        global round
 
+        paused = True
+        while paused:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
 
-def print_text(display, message, x, y, font_color=(227, 169, 220), font_type=r'fonts/FreckleFace.ttf', font_size=50):
-    font = pygame.font.Font(font_type, font_size)
-    text = font.render(message, True, font_color)
-    display.blit(text, (x, y))
+            self.print_text(message, self.display_width // 2 - line_length, self.display_height // 2 - 50)
+            pygame.display.update()
+            self.clock.tick(15)
 
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_RETURN]:
+                paused = False
+            if keys[pygame.K_n] and win:
+                paused = False
+                self.round += 1
 
-def pause(display, message, clock, line_length=300, win=False):
-    global round
+    def show_menu(self):
+        menu_bckgr = pygame.image.load(r'assets/menu.jpg')
+        show = True
+        button_lvl = buttons.Button(250, 70, 'Choose LVL')
+        button_start = buttons.Button(270, 70, 'Start Game')
 
-    paused = True
-    while paused:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
+        while show:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+            self.display.blit(menu_bckgr, (0, 0))
+            button_start.draw(self.display, 840, 100, self.run_game)
+            button_lvl.draw(self.display, 850, 200, self.show_lvls)
 
-        print_text(display, message, consts.display_width // 2 - line_length, consts.display_height // 2 - 50)
-        pygame.display.update()
-        clock.tick(15)
+            pygame.display.update()
+            self.clock.tick(60)
 
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_RETURN]:
-            paused = False
-        if keys[pygame.K_n] and win:
-            paused = False
-            round += 1
-
-
-def show_menu(display, clock, run_game):
-    menu_bckgr = pygame.image.load(r'assets/menu.jpg')
-    show = True
-    button_lvl = buttons.Button(250, 70, 'Choose LVL')
-    button_start = buttons.Button(270, 70, 'Start Game')
-
-    while show:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-        display.blit(menu_bckgr, (0, 0))
-        button_start.draw(display, 840, 100, run_game)
-        button_lvl.draw(display, 850, 200, show_lvls(display, clock, run_game))
-
-        pygame.display.update()
-        clock.tick(60)
-
-
-def show_lvls(display, clock, run_game):
-
-    def choose_lvl(lvl):
+    def choose_lvl(self, lvl):
         def tmp_lvl():
-            global round
-            round = lvl
-            run_game()
+            self.round = lvl
+            self.run_game()
         return tmp_lvl
 
-    def tmp():
+    def show_lvls(self):
+
         menu_bckgr = pygame.image.load(r'assets/menu.jpg')
         show = True
         lvl_buttons = []
@@ -190,15 +184,15 @@ def show_lvls(display, clock, run_game):
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     quit()
-            display.blit(menu_bckgr, (0, 0))
+            self.display.blit(menu_bckgr, (0, 0))
 
             for lvl in range(len(all_maps)):
-                lvl_buttons[lvl].draw(display, 170 + 220 * lvl, 100, choose_lvl(lvl))
+                lvl_buttons[lvl].draw(self.display, 170 + 220 * lvl, 100, self.choose_lvl(lvl))
 
             pygame.display.update()
-            clock.tick(60)
-    return tmp
+            self.clock.tick(60)
 
 
-start_game()
+game = Game()
+game.start_game()
 
